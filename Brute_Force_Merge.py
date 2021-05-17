@@ -23,6 +23,9 @@ for rowNumber in range(len(cpgDataframe)-1):
     #calculate the interval
     intervalStart = math.floor(firstSite - ((lastSite - firstSite) * 0.5))
     intervalEnd = math.ceil(lastSite + ((lastSite - firstSite) * 0.5))
+    if intervalStart == intervalEnd:
+        intervalStart-= 1
+        intervalEnd+= 1
     #Append the methylation interval for the current sample in the database
     methylationIntervalList.append((str)((chromosomeNumber)+"_"+(str)(intervalStart)+"_"+(str)(intervalEnd)))
 
