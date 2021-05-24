@@ -3,8 +3,8 @@ import numpy as np
 import os
 import math
 #load the two databases
-cpgDataframe = pd.read_csv('/home/hari/Documents/Visiting_Research/Data/database/CPG_Island.csv', low_memory = False)
-mafDataframe = pd.read_csv('/home/hari/Documents/Visiting_Research/Data/database/MAF_CSV.csv', low_memory = False)
+cpgDataframe = pd.read_csv('/home/hari/Visiting_Research/Data/database/CPG_Island.csv', low_memory = False)
+mafDataframe = pd.read_csv('/home/hari/Visiting_Research/Data/database/MAF_CSV.csv', low_memory = False)
 
 #This list stores the methylation interval for all the entires in the Methylation database
 methylationIntervalList = []
@@ -49,20 +49,18 @@ for rowNumber in range(len(cpgDataframe)):
     #Append the index to the list
     chromosomeMap[chromosome].append(rowNumber)
 
-#This list is used to store the methylation intervals indices once we find a matching interval
-methylationValuesList = []
+#This list will contain the list of all mutations from the MAF database lying in that corresponding methylation interval  
+mutationsList = [ [] for i in range(len(cpgDataframe))]
 
 #Traverse through each sample in the MAF database
-for rowNumber in range(300):
+for rowNumber in range(500):
     #Find the chromosome
     chromosome = (str)(mafDataframe.loc[rowNumber, 'Chromosome'])
     #Find the cell line
     cellLine = mafDataframe.loc[rowNumber, 'Tumor_Sample_Barcode']
-    methylationValuesIndices = ""
     #if there are no samples in with that chromosome number or the cell line in the Methylation database, append an empty value and go to the next sample
     if ((cellLine not in cpgDataframe.columns.tolist()) or chromosome not in chromosomeMap.keys()):
-         methylationValuesList.append(methylationValuesIndices)
-         continue
+        continue
     #Find the start and the end position of the sequence in the MAF database
     mafStart = mafDataframe.loc[rowNumber, 'Start_position']
     mafEnd = mafDataframe.loc[rowNumber, 'End_position']
@@ -77,7 +75,16 @@ for rowNumber in range(300):
         #If either the start or the end is in the Methylation interval, then the MAF region overlaps with the methylation interval
         if((mafStart in range(methylationStart, methylationEnd+1)) or (mafEnd in range(methylationStart, methylationEnd+1))):
             #Find the methylation value corresponding to the cell line and append that to the list
-            methylationValuesIndices = (str)(methylationValuesIndices + (str)(index) + ";" )
-    methylationValuesList.append(methylationValuesIndices)
+            mutationsList[index].append(rowNumber);
 
 
+#Write the output to a file. 
+fileHandle = open('testRunResult.txt', 'a')
+for i in range(len(cpgDataframe)):
+    indexList = mutationsList[i]
+    indexList = [str(indexList[j]) for j in range(len(indexList))]
+    fileHandle.write(str(i)+"   ")
+    fileHandle.write(','.join(indexList))
+    fileHandle.write('\n')
+
+fileHandle.close()

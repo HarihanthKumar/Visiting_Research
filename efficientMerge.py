@@ -1,3 +1,4 @@
+from os import sep
 import pandas as pd 
 import numpy as np 
 import math
@@ -7,8 +8,8 @@ from intervalTree import IntervalTree
 import sys
 
 #load the databases as pandas dataframe
-cpgDataframe = pd.read_csv('/home/hari/Documents/Visiting_Research/Data/database/CPG_Island.csv', low_memory = False)
-mafDataframe = pd.read_csv('/home/hari/Documents/Visiting_Research/Data/database/MAF_CSV.csv', low_memory = False)
+cpgDataframe = pd.read_csv('/home/hari/Visiting_Research/Data/database/CPG_Island.csv', low_memory = False)
+mafDataframe = pd.read_csv('/home/hari/Visiting_Research/Data/database/MAF_CSV.csv', low_memory = False)
 
 #create a dictionary that stores the top most root element for each chromosome and initialize each root value to null
 chromosomeMap = {(str)(chromosome) : None for chromosome in range(1,23)}
@@ -50,8 +51,8 @@ for rowNumber in range(len(cpgDataframe)-1):
 #This is done to remove the final entry in the CpG database since it only has NA values.
 cpgDataframe.drop(index = 81037, inplace = True)
 
-#This list will contain the list of all possible indices from the methylation database where the intervals overlap.  
-methylationValuesList = []
+#This list will contain the list of all mutations from the MAF database lying in that corresponding methylation interval  
+mutationsList = [ [] for i in range(len(cpgDataframe))]
 
 #Traverse each entry in the MAF database to find the list of all the overlapping indices from the CpG database
 for rowNumber in range(len(mafDataframe)):
@@ -59,19 +60,26 @@ for rowNumber in range(len(mafDataframe)):
     chromosome = (str)(mafDataframe.loc[rowNumber, 'Chromosome'])
     #Find the cell line of the entry
     cellLine = mafDataframe.loc[rowNumber, 'Tumor_Sample_Barcode']
-    #This list stores the indices of all the overlapping intervals from the CpG database
-    methylationValuesIndices = []
     #If the cell line is not in the CpG database or if the chromosome is 'M' skip (Add an empty list).
     if ((cellLine not in cpgDataframe.columns.tolist()) or chromosome not in chromosomeMap.keys()):
-        methylationValuesList.append(methylationValuesIndices)
         continue
     #find the starting and ending positions of the mutation 
     mafStart = mafDataframe.loc[rowNumber, 'Start_position']
     mafEnd = mafDataframe.loc[rowNumber, 'End_position']
     mafStart = (int)(mafStart)
     mafEnd = (int)(mafEnd) 
-    #Search the interval tree for all the matching intervals.
-    testNode.intervalSearch(chromosomeMap[chromosome], Interval(mafStart, mafEnd, -1), methylationValuesIndices)
-    #Add the list of indices to the list. 
-    methylationValuesList.append(methylationValuesIndices)
+    #Search the interval tree and add the mutation entry to all the overalapping methylation intervals (The list
+    # is passed to the intervalSearch function and the mutation entries are added there)
+    testNode.intervalSearch(chromosomeMap[chromosome], Interval(mafStart, mafEnd, -1), mutationsList, rowNumber)
 
+
+#Write the output to a file. 
+fileHandle = open('testRunResult.txt', 'a')
+for i in range(len(cpgDataframe)):
+    indexList = mutationsList[i]
+    indexList = [str(indexList[j]) for j in range(len(indexList))]
+    fileHandle.write(str(i)+"   ")
+    fileHandle.write(','.join(indexList))
+    fileHandle.write('\n')
+
+fileHandle.close()
